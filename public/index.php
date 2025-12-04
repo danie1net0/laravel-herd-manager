@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use HerdManager\Service\{HerdService, ProxyService};
+use HerdManager\Service\{HerdService, PortCheckService, ProxyService};
 use HerdManager\Controller\{ProxyController, SiteController, WebController};
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
@@ -50,8 +50,9 @@ if ($isApi) {
 
 $herdService = new HerdService();
 $proxyService = new ProxyService();
+$portCheckService = new PortCheckService();
 
-$siteController = new SiteController($herdService);
+$siteController = new SiteController($herdService, $portCheckService);
 $proxyController = new ProxyController($proxyService);
 $webController = new WebController();
 

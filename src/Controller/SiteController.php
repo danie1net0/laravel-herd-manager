@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace HerdManager\Controller;
 
 use Exception;
-use HerdManager\Service\HerdService;
+use HerdManager\Service\{HerdService, PortCheckService};
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Nyholm\Psr7\Response;
 
-readonly class SiteController
+readonly class SiteController extends AbstractController
 {
     public function __construct(
-        private HerdService $herdService
+        private HerdService $herdService,
+        private PortCheckService $portCheckService
     ) {}
 
     public function list(ServerRequestInterface $request): ResponseInterface
@@ -36,17 +36,18 @@ readonly class SiteController
     public function apply(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $requestData = $this->parseJsonBody($request);
-            $sitesData = $this->getArrayFromArray($requestData, 'sites');
+            $body = $this->parseJsonBody($request);
+            $sites = $body['sites'] ?? [];
 
-            if ($sitesData === []) {
+            if (! is_array($sites) || $sites === []) {
                 return $this->json([
                     'success' => false,
                     'error' => 'Invalid sites data',
                 ], 400);
             }
 
-            $applySuccess = $this->herdService->applyChanges($sitesData);
+            /** @var array<int, array{name: string, url: string, port: int}> $sites */
+            $applySuccess = $this->herdService->applyChanges($sites);
 
             if (! $applySuccess) {
                 return $this->json([
@@ -89,16 +90,35 @@ readonly class SiteController
 
     public function status(ServerRequestInterface $request): ResponseInterface
     {
-        $requestData = $this->parseJsonBody($request);
+        $body = $this->parseJsonBody($request);
 
-        $activePortsList = $this->getArrayFromArray($requestData, 'activePorts');
-        $inactivePortsList = $this->getArrayFromArray($requestData, 'inactivePorts');
+        $activePorts = $body['activePorts'] ?? [];
+        $inactivePorts = $body['inactivePorts'] ?? [];
 
-        $activePortsStatus = $this->checkActivePortsStatus($activePortsList);
-        $inactivePortsStatus = $this->checkInactivePortsStatus($inactivePortsList);
+        $activePortsList = [];
+        $inactivePortsList = [];
 
-        $allActivePortsReady = empty($activePortsList) || ! in_array(false, $activePortsStatus, strict: true);
-        $allInactivePortsStopped = empty($inactivePortsList) || ! in_array(false, $inactivePortsStatus, strict: true);
+        if (is_array($activePorts)) {
+            foreach ($activePorts as $port) {
+                if (is_int($port) || is_numeric($port)) {
+                    $activePortsList[] = (int) $port;
+                }
+            }
+        }
+
+        if (is_array($inactivePorts)) {
+            foreach ($inactivePorts as $port) {
+                if (is_int($port) || is_numeric($port)) {
+                    $inactivePortsList[] = (int) $port;
+                }
+            }
+        }
+
+        $activePortsStatus = $this->portCheckService->checkActivePortsStatus($activePortsList);
+        $inactivePortsStatus = $this->portCheckService->checkInactivePortsStatus($inactivePortsList);
+
+        $allActivePortsReady = $activePortsList === [] || ! in_array(false, $activePortsStatus, strict: true);
+        $allInactivePortsStopped = $inactivePortsList === [] || ! in_array(false, $inactivePortsStatus, strict: true);
 
         $systemReady = $allActivePortsReady && $allInactivePortsStopped;
 
@@ -111,8 +131,10 @@ readonly class SiteController
 
     public function debug(ServerRequestInterface $request): ResponseInterface
     {
-        $herdExecutablePath = $_SERVER['HOME'] . '/Library/Application Support/Herd/bin/herd';
-        exec(sprintf('PATH="%s/Library/Application Support/Herd/bin:$PATH" ', $_SERVER['HOME']) . escapeshellarg($herdExecutablePath) . " parked 2>&1", $commandOutput, $exitCode);
+        $homeDirectory = $this->getHomeDirectory();
+        $herdExecutablePath = $homeDirectory . '/Library/Application Support/Herd/bin/herd';
+        $pathVariable = sprintf('PATH="%s/Library/Application Support/Herd/bin:$PATH" ', $homeDirectory);
+        exec($pathVariable . escapeshellarg($herdExecutablePath) . " parked 2>&1", $commandOutput, $exitCode);
 
         return $this->json([
             'output' => $commandOutput,
@@ -123,15 +145,16 @@ readonly class SiteController
     public function testApply(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $requestData = $this->parseJsonBody($request);
-            $sitesList = $this->getArrayFromArray($requestData, 'sites');
+            $body = $this->parseJsonBody($request);
+            $sites = $body['sites'] ?? [];
 
-            $nginxConfigurationDirectory = $_SERVER['HOME'] . '/Library/Application Support/Herd/config/nginx/';
+            $homeDirectory = $this->getHomeDirectory();
+            $nginxConfigurationDirectory = $homeDirectory . '/Library/Application Support/Herd/config/nginx/';
             $nginxMainConfigurationPath = $nginxConfigurationDirectory . 'nginx.conf';
 
             $debugResult = [
                 'step' => 'start',
-                'sites_count' => count($sitesList),
+                'sites_count' => is_array($sites) ? count($sites) : 0,
                 'nginx_dir' => $nginxConfigurationDirectory,
                 'nginx_config_exists' => file_exists($nginxMainConfigurationPath),
                 'nginx_config_writable' => is_writable($nginxMainConfigurationPath),
@@ -147,91 +170,5 @@ readonly class SiteController
                 'error' => $exception->getMessage(),
             ], 500);
         }
-    }
-
-    /**
-     * @param array<int, int> $portsList
-     * @return array<int, bool>
-     */
-    private function checkActivePortsStatus(array $portsList): array
-    {
-        $portsStatus = [];
-
-        foreach ($portsList as $portNumber) {
-            $socketConnection = @fsockopen('127.0.0.1', $portNumber, timeout: 1);
-
-            if (! $socketConnection) {
-                $portsStatus[$portNumber] = false;
-
-                continue;
-            }
-
-            $portsStatus[$portNumber] = true;
-            fclose($socketConnection);
-        }
-
-        return $portsStatus;
-    }
-
-    /**
-     * @param array<int, int> $portsList
-     * @return array<int, bool>
-     */
-    private function checkInactivePortsStatus(array $portsList): array
-    {
-        $portsStatus = [];
-
-        foreach ($portsList as $portNumber) {
-            $socketConnection = @fsockopen('127.0.0.1', $portNumber, timeout: 1);
-
-            if (! $socketConnection) {
-                $portsStatus[$portNumber] = true;
-
-                continue;
-            }
-
-            $portsStatus[$portNumber] = false;
-            fclose($socketConnection);
-        }
-
-        return $portsStatus;
-    }
-
-    /**
-     * @param array<string, mixed> $responseData
-     */
-    private function json(array $responseData, int $statusCode = 200): ResponseInterface
-    {
-        return new Response(
-            $statusCode,
-            ['Content-Type' => 'application/json'],
-            json_encode($responseData) ?: '{}'
-        );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function parseJsonBody(ServerRequestInterface $request): array
-    {
-        $body = (string) $request->getBody();
-        $decoded = json_decode($body, associative: true);
-
-        if (! is_array($decoded)) {
-            return [];
-        }
-
-        return $decoded;
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     * @return array<mixed>
-     */
-    private function getArrayFromArray(array $data, string $key): array
-    {
-        $value = $data[$key] ?? [];
-
-        return is_array($value) ? $value : [];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HerdManager\Service;
 
 use Throwable;
+use RuntimeException;
 
 final class HerdService
 {
@@ -31,7 +32,7 @@ final class HerdService
         ?string $templatesDirectory = null,
         ?CommandTemplateService $commandTemplateService = null
     ) {
-        $this->homeDirectory = $homeDirectory ?? $_SERVER['HOME'] ?? getenv('HOME') ?? posix_getpwuid(posix_getuid())['dir'];
+        $this->homeDirectory = $homeDirectory ?? $this->getHomeDirectory();
         $this->templatesDirectory = $templatesDirectory ?? __DIR__ . '/../../templates';
         $this->commandTemplateService = $commandTemplateService ?? new CommandTemplateService($this->templatesDirectory);
     }
@@ -110,14 +111,18 @@ final class HerdService
     public function generateNginxConfiguration(array $siteData): string
     {
         $portNumber = $siteData['port'];
-        $domainName = preg_replace('/^https?:\/\//', '', $siteData['url']);
+        $domainName = preg_replace('/^https?:\/\//', '', $siteData['url']) ?? '';
 
         $templatePath = $this->templatesDirectory . '/site-nginx.conf';
         $templateContent = file_get_contents($templatePath);
 
+        if ($templateContent === false) {
+            throw new RuntimeException('Failed to read template file: ' . $templatePath);
+        }
+
         return str_replace(
             ['{{PORT}}', '{{DOMAIN}}'],
-            [$portNumber, $domainName],
+            [(string) $portNumber, $domainName],
             $templateContent
         );
     }
@@ -157,6 +162,11 @@ final class HerdService
     {
         $mainConfigurationFile = $this->nginxConfigurationDirectory . 'nginx.conf';
         $fileContent = file_get_contents($mainConfigurationFile);
+
+        if ($fileContent === false) {
+            throw new RuntimeException('Failed to read nginx config file: ' . $mainConfigurationFile);
+        }
+
         $contentLines = explode("\n", $fileContent);
         $newContentLines = [];
         $herdConfigurationFound = false;
@@ -194,6 +204,23 @@ final class HerdService
         exec($getIpCommand, $commandOutput);
 
         return $commandOutput[0] ?? '127.0.0.1';
+    }
+
+    private function getHomeDirectory(): string
+    {
+        $home = $_SERVER['HOME'] ?? getenv('HOME');
+
+        if (is_string($home) && $home !== '') {
+            return $home;
+        }
+
+        $userInfo = posix_getpwuid(posix_getuid());
+
+        if ($userInfo !== false) {
+            return $userInfo['dir'];
+        }
+
+        return '/tmp';
     }
 
     /**
@@ -236,6 +263,10 @@ final class HerdService
     private function getPortFromConfiguration(string $configurationFilePath): int
     {
         $fileContent = file_get_contents($configurationFilePath);
+
+        if ($fileContent === false) {
+            return 8000;
+        }
 
         if (preg_match('/listen 0\.0\.0\.0:(\d+);/', $fileContent, $portMatches)) {
             return (int) $portMatches[1];

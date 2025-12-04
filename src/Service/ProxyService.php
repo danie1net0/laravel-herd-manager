@@ -32,7 +32,7 @@ final class ProxyService
         ?string $templatesDirectory = null,
         ?CommandTemplateService $commandTemplateService = null
     ) {
-        $this->homeDirectory = $homeDirectory ?? $_SERVER['HOME'] ?? getenv('HOME') ?? posix_getpwuid(posix_getuid())['dir'];
+        $this->homeDirectory = $homeDirectory ?? $this->getHomeDirectory();
         $this->templatesDirectory = $templatesDirectory ?? __DIR__ . '/../../templates';
         $this->commandTemplateService = $commandTemplateService ?? new CommandTemplateService($this->templatesDirectory);
     }
@@ -115,11 +115,32 @@ final class ProxyService
         $templatePath = $this->templatesDirectory . '/proxy-nginx.conf';
         $templateContent = file_get_contents($templatePath);
 
+        if ($templateContent === false) {
+            throw new RuntimeException('Failed to read template file: ' . $templatePath);
+        }
+
         return str_replace(
             ['{{DOMAIN}}', '{{PORT}}'],
-            [$domainName, $portNumber],
+            [$domainName, (string) $portNumber],
             $templateContent
         );
+    }
+
+    private function getHomeDirectory(): string
+    {
+        $home = $_SERVER['HOME'] ?? getenv('HOME');
+
+        if (is_string($home) && $home !== '') {
+            return $home;
+        }
+
+        $userInfo = posix_getpwuid(posix_getuid());
+
+        if ($userInfo !== false) {
+            return $userInfo['dir'];
+        }
+
+        return '/tmp';
     }
 
     /**
@@ -131,10 +152,20 @@ final class ProxyService
             return [];
         }
 
-        return json_decode(
-            file_get_contents($this->proxiesFile),
-            associative: true
-        ) ?? [];
+        $fileContent = file_get_contents($this->proxiesFile);
+
+        if ($fileContent === false) {
+            return [];
+        }
+
+        $decoded = json_decode($fileContent, associative: true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        /** @var array<string, array{name: string, domain: string, port: int, created_at: string}> */
+        return $decoded;
     }
 
     /**

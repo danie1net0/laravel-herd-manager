@@ -1,13 +1,14 @@
 <?php
 
 use HerdManager\Controller\SiteController;
-use HerdManager\Service\HerdService;
+use HerdManager\Service\{HerdService, PortCheckService};
 use Nyholm\Psr7\Factory\Psr17Factory;
 
 describe('SiteController', function (): void {
     beforeEach(function (): void {
         $this->herdService = new HerdService();
-        $this->controller = new SiteController($this->herdService);
+        $this->portCheckService = new PortCheckService();
+        $this->controller = new SiteController($this->herdService, $this->portCheckService);
         $this->psr17Factory = new Psr17Factory();
     });
 

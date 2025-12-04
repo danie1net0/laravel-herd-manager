@@ -9,9 +9,8 @@ use InvalidArgumentException;
 use RuntimeException;
 use HerdManager\Service\ProxyService;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Nyholm\Psr7\Response;
 
-readonly class ProxyController
+readonly class ProxyController extends AbstractController
 {
     public function __construct(
         private ProxyService $proxyService
@@ -29,12 +28,20 @@ readonly class ProxyController
     public function create(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $requestData = $this->parseJsonBody($request);
+            $body = $this->parseJsonBody($request);
 
-            $proxyName = $this->getStringFromArray($requestData, 'name', '');
-            $portNumber = $this->getIntFromArray($requestData, 'port', 0);
+            $name = $body['name'] ?? '';
+            $port = $body['port'] ?? 0;
 
-            $proxyData = $this->proxyService->createProxy($proxyName, $portNumber);
+            if (! is_string($name)) {
+                $name = '';
+            }
+
+            if (! is_int($port)) {
+                $port = is_numeric($port) ? (int) $port : 0;
+            }
+
+            $proxyData = $this->proxyService->createProxy($name, $port);
 
             return $this->json([
                 'success' => true,
@@ -87,52 +94,5 @@ readonly class ProxyController
                 'error' => 'Internal server error',
             ], 500);
         }
-    }
-
-    /**
-     * @param array<string, mixed> $responseData
-     */
-    private function json(array $responseData, int $statusCode = 200): ResponseInterface
-    {
-        return new Response(
-            $statusCode,
-            ['Content-Type' => 'application/json'],
-            json_encode($responseData) ?: '{}'
-        );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function parseJsonBody(ServerRequestInterface $request): array
-    {
-        $body = (string) $request->getBody();
-        $decoded = json_decode($body, associative: true);
-
-        if (! is_array($decoded)) {
-            return [];
-        }
-
-        return $decoded;
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function getStringFromArray(array $data, string $key, string $default = ''): string
-    {
-        $value = $data[$key] ?? $default;
-
-        return is_string($value) ? $value : $default;
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function getIntFromArray(array $data, string $key, int $default = 0): int
-    {
-        $value = $data[$key] ?? $default;
-
-        return is_int($value) ? $value : (int) $value;
     }
 }
