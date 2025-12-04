@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace HerdManager\Controller;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Nyholm\Psr7\Response;
 
 class WebController

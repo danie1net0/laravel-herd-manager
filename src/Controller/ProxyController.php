@@ -8,8 +8,7 @@ use Exception;
 use InvalidArgumentException;
 use RuntimeException;
 use HerdManager\Service\ProxyService;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Nyholm\Psr7\Response;
 
 readonly class ProxyController
@@ -41,19 +40,16 @@ readonly class ProxyController
                 'success' => true,
                 'proxy' => $proxyData,
             ], 201);
-
         } catch (InvalidArgumentException $exception) {
             return $this->json([
                 'success' => false,
                 'error' => $exception->getMessage(),
             ], 400);
-
         } catch (RuntimeException $exception) {
             return $this->json([
                 'success' => false,
                 'error' => $exception->getMessage(),
             ], 409);
-
         } catch (Exception $exception) {
             return $this->json([
                 'success' => false,
@@ -75,19 +71,16 @@ readonly class ProxyController
             return $this->json([
                 'success' => true,
             ]);
-
         } catch (InvalidArgumentException $exception) {
             return $this->json([
                 'success' => false,
                 'error' => $exception->getMessage(),
             ], 400);
-
         } catch (RuntimeException $exception) {
             return $this->json([
                 'success' => false,
                 'error' => $exception->getMessage(),
             ], 404);
-
         } catch (Exception $exception) {
             return $this->json([
                 'success' => false,

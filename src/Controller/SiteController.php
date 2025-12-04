@@ -6,8 +6,7 @@ namespace HerdManager\Controller;
 
 use Exception;
 use HerdManager\Service\HerdService;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Nyholm\Psr7\Response;
 
 readonly class SiteController
@@ -39,7 +38,7 @@ readonly class SiteController
         try {
             $requestData = json_decode((string) $request->getBody(), associative: true);
 
-            if (!isset($requestData['sites']) || !is_array($requestData['sites'])) {
+            if (! isset($requestData['sites']) || ! is_array($requestData['sites'])) {
                 return $this->json([
                     'success' => false,
                     'error' => 'Invalid sites data',
@@ -48,7 +47,7 @@ readonly class SiteController
 
             $applySuccess = $this->herdService->applyChanges($requestData['sites']);
 
-            if (!$applySuccess) {
+            if (! $applySuccess) {
                 return $this->json([
                     'success' => false,
                     'error' => 'Failed to apply configurations',
@@ -59,7 +58,6 @@ readonly class SiteController
                 'success' => true,
                 'message' => 'Configurations applied successfully',
             ]);
-
         } catch (Exception $exception) {
             return $this->json([
                 'success' => false,
@@ -98,8 +96,8 @@ readonly class SiteController
         $activePortsStatus = $this->checkActivePortsStatus($activePortsList);
         $inactivePortsStatus = $this->checkInactivePortsStatus($inactivePortsList);
 
-        $allActivePortsReady = empty($activePortsList) || !in_array(false, $activePortsStatus, strict: true);
-        $allInactivePortsStopped = empty($inactivePortsList) || !in_array(false, $inactivePortsStatus, strict: true);
+        $allActivePortsReady = empty($activePortsList) || ! in_array(false, $activePortsStatus, strict: true);
+        $allInactivePortsStopped = empty($inactivePortsList) || ! in_array(false, $inactivePortsStatus, strict: true);
 
         $systemReady = $allActivePortsReady && $allInactivePortsStopped;
 
@@ -108,52 +106,6 @@ readonly class SiteController
             'activePorts' => $activePortsStatus,
             'inactivePorts' => $inactivePortsStatus,
         ]);
-    }
-
-    /**
-     * @param array<int, int> $portsList
-     * @return array<int, bool>
-     */
-    private function checkActivePortsStatus(array $portsList): array
-    {
-        $portsStatus = [];
-
-        foreach ($portsList as $portNumber) {
-            $socketConnection = @fsockopen('127.0.0.1', $portNumber, timeout: 1);
-
-            if (!$socketConnection) {
-                $portsStatus[$portNumber] = false;
-                continue;
-            }
-
-            $portsStatus[$portNumber] = true;
-            fclose($socketConnection);
-        }
-
-        return $portsStatus;
-    }
-
-    /**
-     * @param array<int, int> $portsList
-     * @return array<int, bool>
-     */
-    private function checkInactivePortsStatus(array $portsList): array
-    {
-        $portsStatus = [];
-
-        foreach ($portsList as $portNumber) {
-            $socketConnection = @fsockopen('127.0.0.1', $portNumber, timeout: 1);
-
-            if (!$socketConnection) {
-                $portsStatus[$portNumber] = true;
-                continue;
-            }
-
-            $portsStatus[$portNumber] = false;
-            fclose($socketConnection);
-        }
-
-        return $portsStatus;
     }
 
     public function debug(ServerRequestInterface $request): ResponseInterface
@@ -194,6 +146,54 @@ readonly class SiteController
                 'error' => $exception->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * @param array<int, int> $portsList
+     * @return array<int, bool>
+     */
+    private function checkActivePortsStatus(array $portsList): array
+    {
+        $portsStatus = [];
+
+        foreach ($portsList as $portNumber) {
+            $socketConnection = @fsockopen('127.0.0.1', $portNumber, timeout: 1);
+
+            if (! $socketConnection) {
+                $portsStatus[$portNumber] = false;
+
+                continue;
+            }
+
+            $portsStatus[$portNumber] = true;
+            fclose($socketConnection);
+        }
+
+        return $portsStatus;
+    }
+
+    /**
+     * @param array<int, int> $portsList
+     * @return array<int, bool>
+     */
+    private function checkInactivePortsStatus(array $portsList): array
+    {
+        $portsStatus = [];
+
+        foreach ($portsList as $portNumber) {
+            $socketConnection = @fsockopen('127.0.0.1', $portNumber, timeout: 1);
+
+            if (! $socketConnection) {
+                $portsStatus[$portNumber] = true;
+
+                continue;
+            }
+
+            $portsStatus[$portNumber] = false;
+            fclose($socketConnection);
+        }
+
+        return $portsStatus;
     }
 
     /**

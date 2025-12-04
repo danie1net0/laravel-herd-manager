@@ -2,13 +2,13 @@
 
 use HerdManager\Service\HerdService;
 
-describe('HerdService', function () {
-    beforeEach(function () {
+describe('HerdService', function (): void {
+    beforeEach(function (): void {
         $this->manager = new HerdService();
     });
 
-    describe('parseSitesList', function () {
-        it('parses valid site output correctly', function () {
+    describe('parseSitesList', function (): void {
+        it('parses valid site output correctly', function (): void {
             $output = [
                 '  | empresta-legal |          | http://empresta-legal.test | /Users/daniel/Sites/empresta-legal |',
                 '  | my-api         |          | http://my-api.test         | /Users/daniel/Sites/my-api         |',
@@ -24,7 +24,7 @@ describe('HerdService', function () {
             ]);
         });
 
-        it('returns empty array for invalid output', function () {
+        it('returns empty array for invalid output', function (): void {
             $output = [
                 'Invalid line',
                 'Another invalid line',
@@ -35,7 +35,7 @@ describe('HerdService', function () {
             expect($sites)->toBeEmpty();
         });
 
-        it('detects exposed status correctly', function () {
+        it('detects exposed status correctly', function (): void {
             $output = [
                 '  | test-site |          | http://test-site.test | /Users/daniel/Sites/test-site |',
             ];
@@ -48,28 +48,28 @@ describe('HerdService', function () {
         });
     });
 
-    describe('checkPortAvailability', function () {
-        it('returns false for invalid ports', function () {
+    describe('checkPortAvailability', function (): void {
+        it('returns false for invalid ports', function (): void {
             expect($this->manager->checkPortAvailability(0))->toBeFalse();
             expect($this->manager->checkPortAvailability(-1))->toBeFalse();
             expect($this->manager->checkPortAvailability(65536))->toBeFalse();
             expect($this->manager->checkPortAvailability(99999))->toBeFalse();
         });
 
-        it('returns true for valid ports', function () {
+        it('returns true for valid ports', function (): void {
             $availablePort = 9999;
             expect($this->manager->checkPortAvailability($availablePort))->toBeTrue();
         });
 
-        it('returns false for ports in use', function () {
+        it('returns false for ports in use', function (): void {
             $usedPort = 80;
             $result = $this->manager->checkPortAvailability($usedPort);
             expect($result)->toBeBool();
         });
     });
 
-    describe('generateNginxConfiguration', function () {
-        it('generates correct nginx configuration', function () {
+    describe('generateNginxConfiguration', function (): void {
+        it('generates correct nginx configuration', function (): void {
             $siteData = [
                 'name' => 'test-site',
                 'url' => 'http://test-site.test',
@@ -83,7 +83,7 @@ describe('HerdService', function () {
             expect($nginxConfiguration)->toContain('proxy_pass http://127.0.0.1:80');
         });
 
-        it('strips protocol from domain correctly', function () {
+        it('strips protocol from domain correctly', function (): void {
             $siteData = [
                 'name' => 'test-site',
                 'url' => 'https://test-site.test',
@@ -96,7 +96,7 @@ describe('HerdService', function () {
             expect($nginxConfiguration)->not->toContain('https://');
         });
 
-        it('uses correct port number', function () {
+        it('uses correct port number', function (): void {
             $siteData = [
                 'name' => 'test-site',
                 'url' => 'http://test-site.test',
@@ -109,8 +109,8 @@ describe('HerdService', function () {
         });
     });
 
-    describe('getConfigurationPath', function () {
-        it('returns correct config path', function () {
+    describe('getConfigurationPath', function (): void {
+        it('returns correct config path', function (): void {
             $siteName = 'my-site';
             $configurationPath = $this->manager->getConfigurationPath($siteName);
 
@@ -119,14 +119,14 @@ describe('HerdService', function () {
         });
     });
 
-    describe('getLocalIpAddress', function () {
-        it('returns a valid IP address format', function () {
+    describe('getLocalIpAddress', function (): void {
+        it('returns a valid IP address format', function (): void {
             $ipAddress = $this->manager->getLocalIpAddress();
 
             expect($ipAddress)->toMatch('/^(\d{1,3}\.){3}\d{1,3}$/');
         });
 
-        it('returns an IP address', function () {
+        it('returns an IP address', function (): void {
             $ipAddress = $this->manager->getLocalIpAddress();
 
             expect($ipAddress)->not->toBeEmpty();

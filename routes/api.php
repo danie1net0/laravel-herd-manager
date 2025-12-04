@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use FastRoute\RouteCollector;
 
-return function (RouteCollector $r) {
+return function (RouteCollector $r): void {
     $r->addRoute('GET', '/api/sites', 'SiteController@list');
     $r->addRoute('GET', '/api/sites/ip', 'SiteController@getIp');
     $r->addRoute('GET', '/api/sites/check-port', 'SiteController@checkPort');

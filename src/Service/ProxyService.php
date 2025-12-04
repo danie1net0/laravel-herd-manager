@@ -9,10 +9,6 @@ use RuntimeException;
 
 final class ProxyService
 {
-    private readonly string $homeDirectory;
-    private readonly string $templatesDirectory;
-    private readonly CommandTemplateService $commandTemplateService;
-
     public string $proxiesFile {
         get => $this->homeDirectory . '/.herd-manager-proxies.json';
     }
@@ -24,6 +20,12 @@ final class ProxyService
     public string $herdBinaryPath {
         get => $this->homeDirectory . '/Library/Application Support/Herd/bin';
     }
+
+    private readonly string $homeDirectory;
+
+    private readonly string $templatesDirectory;
+
+    private readonly CommandTemplateService $commandTemplateService;
 
     public function __construct(
         ?string $homeDirectory = null,
@@ -50,7 +52,7 @@ final class ProxyService
     {
         match (true) {
             empty($proxyName) || $portNumber === 0 => throw new InvalidArgumentException('Name and port are required'),
-            !preg_match('/^[a-z0-9-]+$/', $proxyName) => throw new InvalidArgumentException('Name must contain only lowercase letters, numbers and hyphens'),
+            ! preg_match('/^[a-z0-9-]+$/', $proxyName) => throw new InvalidArgumentException('Name must contain only lowercase letters, numbers and hyphens'),
             $portNumber < 1024 || $portNumber > 65535 => throw new InvalidArgumentException('Port must be between 1024 and 65535'),
             default => null,
         };
@@ -91,7 +93,7 @@ final class ProxyService
 
         $proxyList = $this->loadProxies();
 
-        if (!isset($proxyList[$proxyName])) {
+        if (! isset($proxyList[$proxyName])) {
             throw new RuntimeException('Proxy not found');
         }
 
@@ -108,12 +110,24 @@ final class ProxyService
         return true;
     }
 
+    public function generateProxyNginxConfiguration(string $domainName, int $portNumber): string
+    {
+        $templatePath = $this->templatesDirectory . '/proxy-nginx.conf';
+        $templateContent = file_get_contents($templatePath);
+
+        return str_replace(
+            ['{{DOMAIN}}', '{{PORT}}'],
+            [$domainName, $portNumber],
+            $templateContent
+        );
+    }
+
     /**
      * @return array<string, array{name: string, domain: string, port: int, created_at: string}>
      */
     private function loadProxies(): array
     {
-        if (!file_exists($this->proxiesFile)) {
+        if (! file_exists($this->proxiesFile)) {
             return [];
         }
 
@@ -131,18 +145,6 @@ final class ProxyService
         file_put_contents(
             $this->proxiesFile,
             json_encode($proxyList, JSON_PRETTY_PRINT)
-        );
-    }
-
-    public function generateProxyNginxConfiguration(string $domainName, int $portNumber): string
-    {
-        $templatePath = $this->templatesDirectory . '/proxy-nginx.conf';
-        $templateContent = file_get_contents($templatePath);
-
-        return str_replace(
-            ['{{DOMAIN}}', '{{PORT}}'],
-            [$domainName, $portNumber],
-            $templateContent
         );
     }
 

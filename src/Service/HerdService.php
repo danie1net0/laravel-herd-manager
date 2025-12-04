@@ -8,10 +8,6 @@ use Throwable;
 
 final class HerdService
 {
-    private readonly string $homeDirectory;
-    private readonly string $templatesDirectory;
-    private readonly CommandTemplateService $commandTemplateService;
-
     public string $herdBinaryPath {
         get => $this->homeDirectory . '/Library/Application Support/Herd/bin';
     }
@@ -23,6 +19,12 @@ final class HerdService
     public string $valetNginxDirectory {
         get => $this->homeDirectory . '/Library/Application Support/Herd/config/valet/Nginx/';
     }
+
+    private readonly string $homeDirectory;
+
+    private readonly string $templatesDirectory;
+
+    private readonly CommandTemplateService $commandTemplateService;
 
     public function __construct(
         ?string $homeDirectory = null,
@@ -44,44 +46,9 @@ final class HerdService
             ...$this->getLinkedSites(),
         ];
 
-        usort($sites, fn(array $firstSite, array $secondSite): int => strcmp($firstSite['name'], $secondSite['name']));
+        usort($sites, fn (array $firstSite, array $secondSite): int => strcmp($firstSite['name'], $secondSite['name']));
 
         return $sites;
-    }
-
-    /**
-     * @return array<int, array{name: string, url: string, path: string, exposed: bool, port: int, type: string}>
-     */
-    private function getParkedSites(): array
-    {
-        $commandOutput = $this->executeHerdCommand('parked');
-        return $this->parseSitesList($commandOutput, 'parked');
-    }
-
-    /**
-     * @return array<int, array{name: string, url: string, path: string, exposed: bool, port: int, type: string}>
-     */
-    private function getLinkedSites(): array
-    {
-        $commandOutput = $this->executeHerdCommand('links');
-        return $this->parseSitesList($commandOutput, 'linked');
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function executeHerdCommand(string $command): array
-    {
-        $herdExecutablePath = $this->herdBinaryPath . '/herd';
-        $fullHerdCommand = $this->commandTemplateService->render('herd_command', [
-            'herd_bin_path' => escapeshellarg($this->herdBinaryPath),
-            'herd_executable' => escapeshellarg($herdExecutablePath),
-            'command' => escapeshellcmd($command),
-        ]);
-
-        exec($fullHerdCommand, $commandOutput, $exitCode);
-
-        return $exitCode === 0 ? $commandOutput : [];
     }
 
     /**
@@ -94,18 +61,18 @@ final class HerdService
         $regexPattern = '/\|\s+([a-z0-9\.-]+)\s+\|\s+(\S*)\s+\|\s+(https?:\/\/[^\s]+)\s+\|\s+([^\|]+?)\s+\|/';
 
         foreach ($commandOutput as $outputLine) {
-            if (!preg_match($regexPattern, $outputLine, $regexMatches)) {
+            if (! preg_match($regexPattern, $outputLine, $regexMatches)) {
                 continue;
             }
 
-            $siteName = trim($regexMatches[1]);
+            $siteName = mb_trim($regexMatches[1]);
             $configurationFilePath = $this->getConfigurationPath($siteName);
             $isExposed = file_exists($configurationFilePath);
 
             $sites[] = [
                 'name' => $siteName,
-                'url' => trim($regexMatches[3]),
-                'path' => trim($regexMatches[4]),
+                'url' => mb_trim($regexMatches[3]),
+                'path' => mb_trim($regexMatches[4]),
                 'exposed' => $isExposed,
                 'port' => $isExposed ? $this->getPortFromConfiguration($configurationFilePath) : 8000,
                 'type' => $siteType,
@@ -113,17 +80,6 @@ final class HerdService
         }
 
         return $sites;
-    }
-
-    private function getPortFromConfiguration(string $configurationFilePath): int
-    {
-        $fileContent = file_get_contents($configurationFilePath);
-
-        if (preg_match('/listen 0\.0\.0\.0:(\d+);/', $fileContent, $portMatches)) {
-            return (int) $portMatches[1];
-        }
-
-        return 8000;
     }
 
     public function getConfigurationPath(string $siteName): string
@@ -144,6 +100,7 @@ final class HerdService
         }
 
         fclose($socketConnection);
+
         return false;
     }
 
@@ -172,7 +129,7 @@ final class HerdService
     {
         try {
             $activeConfigurationFiles = array_map(
-                fn(array $siteData): string => basename($this->getConfigurationPath($siteData['name'])),
+                fn (array $siteData): string => basename($this->getConfigurationPath($siteData['name'])),
                 $sitesData
             );
 
@@ -196,20 +153,6 @@ final class HerdService
     /**
      * @param array<int, string> $activeConfigurationFiles
      */
-    private function removeInactiveConfigurations(array $activeConfigurationFiles): void
-    {
-        foreach (glob($this->nginxConfigurationDirectory . '*-local.conf') ?: [] as $configurationFile) {
-            if (in_array(basename($configurationFile), $activeConfigurationFiles, strict: true)) {
-                continue;
-            }
-
-            unlink($configurationFile);
-        }
-    }
-
-    /**
-     * @param array<int, string> $activeConfigurationFiles
-     */
     public function updateMainNginxConfiguration(array $activeConfigurationFiles): void
     {
         $mainConfigurationFile = $this->nginxConfigurationDirectory . 'nginx.conf';
@@ -223,12 +166,13 @@ final class HerdService
 
             if ($isLocalConfigurationLine) {
                 $this->processLocalConfigurationLine($contentLine, $configurationMatch, $activeConfigurationFiles, $newContentLines);
+
                 continue;
             }
 
             $newContentLines[] = $contentLine;
 
-            if ($herdConfigurationFound || !str_contains($contentLine, 'include herd.conf;')) {
+            if ($herdConfigurationFound || ! str_contains($contentLine, 'include herd.conf;')) {
                 continue;
             }
 
@@ -238,6 +182,76 @@ final class HerdService
         }
 
         file_put_contents($mainConfigurationFile, implode("\n", $newContentLines));
+    }
+
+    public function getLocalIpAddress(): string
+    {
+        $getIpCommand = $this->commandTemplateService->render('get_local_ip');
+        exec($getIpCommand, $commandOutput);
+
+        return $commandOutput[0] ?? '127.0.0.1';
+    }
+
+    /**
+     * @return array<int, array{name: string, url: string, path: string, exposed: bool, port: int, type: string}>
+     */
+    private function getParkedSites(): array
+    {
+        $commandOutput = $this->executeHerdCommand('parked');
+
+        return $this->parseSitesList($commandOutput, 'parked');
+    }
+
+    /**
+     * @return array<int, array{name: string, url: string, path: string, exposed: bool, port: int, type: string}>
+     */
+    private function getLinkedSites(): array
+    {
+        $commandOutput = $this->executeHerdCommand('links');
+
+        return $this->parseSitesList($commandOutput, 'linked');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function executeHerdCommand(string $command): array
+    {
+        $herdExecutablePath = $this->herdBinaryPath . '/herd';
+        $fullHerdCommand = $this->commandTemplateService->render('herd_command', [
+            'herd_bin_path' => escapeshellarg($this->herdBinaryPath),
+            'herd_executable' => escapeshellarg($herdExecutablePath),
+            'command' => escapeshellcmd($command),
+        ]);
+
+        exec($fullHerdCommand, $commandOutput, $exitCode);
+
+        return $exitCode === 0 ? $commandOutput : [];
+    }
+
+    private function getPortFromConfiguration(string $configurationFilePath): int
+    {
+        $fileContent = file_get_contents($configurationFilePath);
+
+        if (preg_match('/listen 0\.0\.0\.0:(\d+);/', $fileContent, $portMatches)) {
+            return (int) $portMatches[1];
+        }
+
+        return 8000;
+    }
+
+    /**
+     * @param array<int, string> $activeConfigurationFiles
+     */
+    private function removeInactiveConfigurations(array $activeConfigurationFiles): void
+    {
+        foreach (glob($this->nginxConfigurationDirectory . '*-local.conf') ?: [] as $configurationFile) {
+            if (in_array(basename($configurationFile), $activeConfigurationFiles, strict: true)) {
+                continue;
+            }
+
+            unlink($configurationFile);
+        }
     }
 
     /**
@@ -251,7 +265,7 @@ final class HerdService
         array &$activeConfigurationFiles,
         array &$newContentLines
     ): void {
-        if (!in_array($configurationMatch[1], $activeConfigurationFiles, strict: true)) {
+        if (! in_array($configurationMatch[1], $activeConfigurationFiles, strict: true)) {
             return;
         }
 
@@ -279,12 +293,5 @@ final class HerdService
         ]);
 
         shell_exec($restartCommand);
-    }
-
-    public function getLocalIpAddress(): string
-    {
-        $getIpCommand = $this->commandTemplateService->render('get_local_ip');
-        exec($getIpCommand, $commandOutput);
-        return $commandOutput[0] ?? '127.0.0.1';
     }
 }

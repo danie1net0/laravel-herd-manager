@@ -1,15 +1,14 @@
 <?php
 
-use HerdManager\Service\HerdService;
-use HerdManager\Service\ProxyService;
+use HerdManager\Service\{HerdService, ProxyService};
 
-describe('API Integration Tests', function () {
-    describe('HerdManager Integration', function () {
-        beforeEach(function () {
+describe('API Integration Tests', function (): void {
+    describe('HerdManager Integration', function (): void {
+        beforeEach(function (): void {
             $this->manager = new HerdService();
         });
 
-        it('integra listagem de sites com parsing', function () {
+        it('integra listagem de sites com parsing', function (): void {
             $sites = $this->manager->listSites();
 
             expect($sites)->toBeArray();
@@ -24,7 +23,7 @@ describe('API Integration Tests', function () {
             }
         });
 
-        it('verifica disponibilidade de múltiplas portas', function () {
+        it('verifica disponibilidade de múltiplas portas', function (): void {
             $ports = [9999, 9998, 9997];
 
             foreach ($ports as $port) {
@@ -33,7 +32,7 @@ describe('API Integration Tests', function () {
             }
         });
 
-        it('gera configuração nginx válida para site real', function () {
+        it('gera configuração nginx válida para site real', function (): void {
             $site = [
                 'name' => 'empresta-legal',
                 'url' => 'http://empresta-legal.test',
@@ -49,7 +48,7 @@ describe('API Integration Tests', function () {
             expect($config)->toContain('}');
         });
 
-        it('retorna IP local válido', function () {
+        it('retorna IP local válido', function (): void {
             $ip = $this->manager->getLocalIpAddress();
 
             expect($ip)->toBeString();
@@ -60,19 +59,19 @@ describe('API Integration Tests', function () {
             expect($parts)->toHaveCount(4);
 
             foreach ($parts as $part) {
-                $num = (int)$part;
+                $num = (int) $part;
                 expect($num)->toBeGreaterThanOrEqual(0);
                 expect($num)->toBeLessThanOrEqual(255);
             }
         });
     });
 
-    describe('ProxyManager Integration', function () {
-        beforeEach(function () {
+    describe('ProxyManager Integration', function (): void {
+        beforeEach(function (): void {
             $this->manager = new ProxyService();
         });
 
-        it('lista proxies existentes', function () {
+        it('lista proxies existentes', function (): void {
             $proxies = $this->manager->listProxies();
 
             expect($proxies)->toBeArray();
@@ -85,7 +84,7 @@ describe('API Integration Tests', function () {
             }
         });
 
-        it('gera configuração nginx com headers corretos', function () {
+        it('gera configuração nginx com headers corretos', function (): void {
             $config = $this->manager->generateProxyNginxConfiguration('test.test', 3000);
 
             // Verificar estrutura básica
@@ -110,7 +109,7 @@ describe('API Integration Tests', function () {
             expect($config)->toContain('proxy_read_timeout 86400');
         });
 
-        it('valida múltiplos formatos de nome', function () {
+        it('valida múltiplos formatos de nome', function (): void {
             $validNames = [
                 'simple',
                 'with-dash',
@@ -124,7 +123,7 @@ describe('API Integration Tests', function () {
             }
         });
 
-        it('rejeita formatos de nome inválidos', function () {
+        it('rejeita formatos de nome inválidos', function (): void {
             $invalidNames = [
                 'With_Underscore',
                 'UPPERCASE',
@@ -134,12 +133,12 @@ describe('API Integration Tests', function () {
             ];
 
             foreach ($invalidNames as $name) {
-                expect(fn() => $this->manager->createProxy($name, 3000))
+                expect(fn () => $this->manager->createProxy($name, 3000))
                     ->toThrow(InvalidArgumentException::class);
             }
         });
 
-        it('valida ranges de porta corretamente', function () {
+        it('valida ranges de porta corretamente', function (): void {
             $validPorts = [1024, 3000, 8080, 65535];
             $invalidPorts = [0, 80, 443, 1023, 65536, -1];
 
@@ -149,14 +148,14 @@ describe('API Integration Tests', function () {
             }
 
             foreach ($invalidPorts as $port) {
-                expect(fn() => $this->manager->createProxy('test', $port))
+                expect(fn () => $this->manager->createProxy('test', $port))
                     ->toThrow(InvalidArgumentException::class);
             }
         });
     });
 
-    describe('Fluxo Completo de Exposição', function () {
-        it('simula fluxo completo de expor um site', function () {
+    describe('Fluxo Completo de Exposição', function (): void {
+        it('simula fluxo completo de expor um site', function (): void {
             $manager = new HerdService();
 
             // 1. Listar sites disponíveis
@@ -185,8 +184,8 @@ describe('API Integration Tests', function () {
         });
     });
 
-    describe('Fluxo Completo de Proxy', function () {
-        it('simula fluxo completo de criar proxy', function () {
+    describe('Fluxo Completo de Proxy', function (): void {
+        it('simula fluxo completo de criar proxy', function (): void {
             $manager = new ProxyService();
 
             // 1. Validar nome
@@ -207,8 +206,8 @@ describe('API Integration Tests', function () {
         });
     });
 
-    describe('Validação de Dados', function () {
-        it('valida estrutura de site completa', function () {
+    describe('Validação de Dados', function (): void {
+        it('valida estrutura de site completa', function (): void {
             $site = [
                 'name' => 'test-site',
                 'url' => 'http://test-site.test',
@@ -233,7 +232,7 @@ describe('API Integration Tests', function () {
             expect($site['type'])->toBeIn(['parked', 'linked']);
         });
 
-        it('valida estrutura de proxy completa', function () {
+        it('valida estrutura de proxy completa', function (): void {
             $proxy = [
                 'name' => 'test-proxy',
                 'domain' => 'test-proxy.test',
@@ -253,8 +252,8 @@ describe('API Integration Tests', function () {
         });
     });
 
-    describe('Configurações Nginx', function () {
-        it('gera configuração nginx com proxy headers corretos', function () {
+    describe('Configurações Nginx', function (): void {
+        it('gera configuração nginx com proxy headers corretos', function (): void {
             $manager = new HerdService();
 
             $site = [
@@ -278,7 +277,7 @@ describe('API Integration Tests', function () {
             }
         });
 
-        it('gera configuração nginx proxy com suporte websocket', function () {
+        it('gera configuração nginx proxy com suporte websocket', function (): void {
             $manager = new ProxyService();
             $config = $manager->generateProxyNginxConfiguration('test.test', 3000);
 
@@ -293,7 +292,7 @@ describe('API Integration Tests', function () {
             }
         });
 
-        it('gera configuração com client_max_body_size adequado', function () {
+        it('gera configuração com client_max_body_size adequado', function (): void {
             $manager = new ProxyService();
             $config = $manager->generateProxyNginxConfiguration('test.test', 3000);
 

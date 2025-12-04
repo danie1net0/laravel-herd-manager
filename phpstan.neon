@@ -1,0 +1,15 @@
+parameters:
+    level: 9
+    paths:
+        - src
+        - tests
+        - routes
+        - public
+    excludePaths:
+        - vendor
+        - .pest (?)
+        - coverage (?)
+    tmpDir: .phpstan
+    ignoreErrors:
+        - '#Property [a-zA-Z\\]+::\$[a-zA-Z]+ is not used#'
+    reportUnmatchedIgnoredErrors: false

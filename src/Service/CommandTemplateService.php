@@ -13,7 +13,7 @@ final readonly class CommandTemplateService
 
     public function __construct(?string $templatesDirectory = null)
     {
-        $templatesDirectory = $templatesDirectory ?? __DIR__ . '/../../templates';
+        $templatesDirectory ??= __DIR__ . '/../../templates';
         $this->templates = require $templatesDirectory . '/commands.php';
     }
 
@@ -22,14 +22,14 @@ final readonly class CommandTemplateService
      */
     public function render(string $templateName, array $variables = []): string
     {
-        if (!isset($this->templates[$templateName])) {
+        if (! isset($this->templates[$templateName])) {
             throw new InvalidArgumentException("Template '{$templateName}' not found");
         }
 
         $template = $this->templates[$templateName];
 
         foreach ($variables as $key => $value) {
-            $template = str_replace("{{" . strtoupper($key) . "}}", $value, $template);
+            $template = str_replace("{{" . mb_strtoupper($key) . "}}", $value, $template);
         }
 
         return $template;

@@ -4,15 +4,15 @@ use HerdManager\Controller\SiteController;
 use HerdManager\Service\HerdService;
 use Nyholm\Psr7\Factory\Psr17Factory;
 
-describe('SiteController', function () {
-    beforeEach(function () {
+describe('SiteController', function (): void {
+    beforeEach(function (): void {
         $this->herdService = new HerdService();
         $this->controller = new SiteController($this->herdService);
         $this->psr17Factory = new Psr17Factory();
     });
 
-    describe('list', function () {
-        it('retorna lista de sites em JSON', function () {
+    describe('list', function (): void {
+        it('retorna lista de sites em JSON', function (): void {
             $request = $this->psr17Factory->createServerRequest('GET', '/api/sites');
             $response = $this->controller->list($request);
 
@@ -25,8 +25,8 @@ describe('SiteController', function () {
         });
     });
 
-    describe('getIp', function () {
-        it('retorna IP local em JSON', function () {
+    describe('getIp', function (): void {
+        it('retorna IP local em JSON', function (): void {
             $request = $this->psr17Factory->createServerRequest('GET', '/api/sites/ip');
             $response = $this->controller->getIp($request);
 
@@ -38,8 +38,8 @@ describe('SiteController', function () {
         });
     });
 
-    describe('checkPort', function () {
-        it('valida porta disponível', function () {
+    describe('checkPort', function (): void {
+        it('valida porta disponível', function (): void {
             $request = $this->psr17Factory->createServerRequest('GET', '/api/sites/check-port?port=9999');
             $response = $this->controller->checkPort($request);
 
@@ -51,7 +51,7 @@ describe('SiteController', function () {
             expect($data['port'])->toBe(9999);
         });
 
-        it('retorna erro para porta inválida', function () {
+        it('retorna erro para porta inválida', function (): void {
             $request = $this->psr17Factory->createServerRequest('GET', '/api/sites/check-port?port=99999');
             $response = $this->controller->checkPort($request);
 
@@ -63,7 +63,7 @@ describe('SiteController', function () {
             expect($data['available'])->toBeFalse();
         });
 
-        it('retorna erro para porta zero', function () {
+        it('retorna erro para porta zero', function (): void {
             $request = $this->psr17Factory->createServerRequest('GET', '/api/sites/check-port?port=0');
             $response = $this->controller->checkPort($request);
 
@@ -74,8 +74,8 @@ describe('SiteController', function () {
         });
     });
 
-    describe('apply', function () {
-        it('valida dados obrigatórios', function () {
+    describe('apply', function (): void {
+        it('valida dados obrigatórios', function (): void {
             $request = $this->psr17Factory->createServerRequest('POST', '/api/sites/apply')
                 ->withBody($this->psr17Factory->createStream(json_encode(['invalid' => 'data'])));
 
@@ -89,7 +89,7 @@ describe('SiteController', function () {
             expect($data)->toHaveKey('error');
         });
 
-        it('aceita array de sites válido', function () {
+        it('aceita array de sites válido', function (): void {
             $request = $this->psr17Factory->createServerRequest('POST', '/api/sites/apply')
                 ->withBody($this->psr17Factory->createStream(json_encode(['sites' => []])));
 
@@ -100,8 +100,8 @@ describe('SiteController', function () {
         });
     });
 
-    describe('status', function () {
-        it('verifica status de portas', function () {
+    describe('status', function (): void {
+        it('verifica status de portas', function (): void {
             $requestData = [
                 'activePorts' => [8000],
                 'inactivePorts' => [9999],
@@ -120,7 +120,7 @@ describe('SiteController', function () {
             expect($data)->toHaveKey('inactivePorts');
         });
 
-        it('retorna estrutura correta quando não há portas', function () {
+        it('retorna estrutura correta quando não há portas', function (): void {
             $request = $this->psr17Factory->createServerRequest('POST', '/api/sites/status')
                 ->withBody($this->psr17Factory->createStream(json_encode(['activePorts' => [], 'inactivePorts' => []])));
 
@@ -133,8 +133,8 @@ describe('SiteController', function () {
         });
     });
 
-    describe('testApply', function () {
-        it('retorna informações de debug', function () {
+    describe('testApply', function (): void {
+        it('retorna informações de debug', function (): void {
             $request = $this->psr17Factory->createServerRequest('POST', '/api/sites/test-apply')
                 ->withBody($this->psr17Factory->createStream(json_encode(['sites' => []])));
 

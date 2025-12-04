@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use HerdManager\Controller\ProxyController;
-use HerdManager\Controller\SiteController;
-use HerdManager\Controller\WebController;
-use HerdManager\Service\HerdService;
-use HerdManager\Service\ProxyService;
+use HerdManager\Service\{HerdService, ProxyService};
+use HerdManager\Controller\{ProxyController, SiteController, WebController};
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7Server\ServerRequestCreator;
@@ -26,8 +23,8 @@ $request = $creator->fromGlobals();
 $httpMethod = $request->getMethod();
 $uri = $request->getUri()->getPath();
 
-if (false !== $pos = strpos($uri, '?')) {
-    $uri = substr($uri, 0, $pos);
+if (false !== $pos = mb_strpos($uri, '?')) {
+    $uri = mb_substr($uri, 0, $pos);
 }
 
 $uri = rawurldecode($uri);
@@ -42,6 +39,7 @@ if ($isApi) {
 
     if ($httpMethod === 'OPTIONS') {
         http_response_code(200);
+
         exit;
     }
 
@@ -68,7 +66,6 @@ try {
                 $isApi ? json_encode(['error' => 'Route not found']) : '<h1>404 Not Found</h1>'
             );
             break;
-
         case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
             $response = new Response(
                 405,
@@ -76,7 +73,6 @@ try {
                 $isApi ? json_encode(['error' => 'Method not allowed']) : '<h1>405 Method Not Allowed</h1>'
             );
             break;
-
         case FastRoute\Dispatcher::FOUND:
             $handler = $routeInfo[1];
             $vars = $routeInfo[2];
@@ -87,7 +83,7 @@ try {
                 'SiteController' => $siteController,
                 'ProxyController' => $proxyController,
                 'WebController' => $webController,
-                default => throw new \RuntimeException('Controller not found'),
+                default => throw new RuntimeException('Controller not found'),
             };
 
             if (empty($vars)) {
@@ -96,7 +92,6 @@ try {
                 $response = $controller->$method($request, $vars);
             }
             break;
-
         default:
             $response = new Response(
                 500,
@@ -104,8 +99,7 @@ try {
                 $isApi ? json_encode(['error' => 'Unknown routing error']) : '<h1>500 Internal Server Error</h1>'
             );
     }
-
-} catch (\Throwable $e) {
+} catch (Throwable $e) {
     $response = new Response(
         500,
         ['Content-Type' => $isApi ? 'application/json' : 'text/html'],

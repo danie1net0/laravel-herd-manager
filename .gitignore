@@ -30,3 +30,9 @@ coverage/
 
 # Herd Manager specific
 .herd-manager-proxies.json
+
+# PHP CS Fixer
+.php-cs-fixer.cache
+
+# PHPStan
+.phpstan/
