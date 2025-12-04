@@ -13,6 +13,10 @@ class WebController
     {
         $html = file_get_contents(__DIR__ . '/../../views/index.html');
 
+        if ($html === false) {
+            $html = '<h1>Error loading page</h1>';
+        }
+
         return new Response(
             200,
             ['Content-Type' => 'text/html; charset=utf-8'],
