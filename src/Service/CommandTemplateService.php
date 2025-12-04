@@ -23,7 +23,7 @@ final readonly class CommandTemplateService
     public function render(string $templateName, array $variables = []): string
     {
         if (! isset($this->templates[$templateName])) {
-            throw new InvalidArgumentException("Template '{$templateName}' not found");
+            throw new InvalidArgumentException(sprintf("Template '%s' not found", $templateName));
         }
 
         $template = $this->templates[$templateName];

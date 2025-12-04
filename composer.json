@@ -16,7 +16,8 @@
     "require-dev": {
         "pestphp/pest": "^4.0",
         "friendsofphp/php-cs-fixer": "^3.91",
-        "phpstan/phpstan": "^2.1"
+        "phpstan/phpstan": "^2.1",
+        "rector/rector": "^2.2"
     },
     "autoload": {
         "psr-4": {
@@ -35,6 +36,21 @@
     },
     "scripts": {
         "test": "pest",
-        "test:coverage": "pest --coverage"
+        "test:coverage": "pest --coverage",
+        "phpstan": "phpstan analyse --memory-limit=256M",
+        "phpstan:baseline": "phpstan analyse --memory-limit=256M --generate-baseline",
+        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "rector": "rector process --dry-run",
+        "rector:fix": "rector process",
+        "check": [
+            "@phpstan",
+            "@cs:check",
+            "@test"
+        ],
+        "fix": [
+            "@cs:fix",
+            "@rector:fix"
+        ]
     }
 }

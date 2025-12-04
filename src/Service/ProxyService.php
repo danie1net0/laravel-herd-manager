@@ -51,7 +51,7 @@ final class ProxyService
     public function createProxy(string $proxyName, int $portNumber): array
     {
         match (true) {
-            empty($proxyName) || $portNumber === 0 => throw new InvalidArgumentException('Name and port are required'),
+            $proxyName === '' || $proxyName === '0' || $portNumber === 0 => throw new InvalidArgumentException('Name and port are required'),
             ! preg_match('/^[a-z0-9-]+$/', $proxyName) => throw new InvalidArgumentException('Name must contain only lowercase letters, numbers and hyphens'),
             $portNumber < 1024 || $portNumber > 65535 => throw new InvalidArgumentException('Port must be between 1024 and 65535'),
             default => null,
@@ -87,7 +87,7 @@ final class ProxyService
 
     public function deleteProxy(string $proxyName): bool
     {
-        if (empty($proxyName)) {
+        if ($proxyName === '' || $proxyName === '0') {
             throw new InvalidArgumentException('Name is required');
         }
 

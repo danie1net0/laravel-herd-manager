@@ -168,14 +168,14 @@ describe('API Integration Tests', function (): void {
             expect($available)->toBeBool();
 
             // 3. Gerar configuração nginx
-            if (count($sites) > 0) {
+            if ($sites !== []) {
                 $site = $sites[0];
                 $site['port'] = $port;
                 $site['exposed'] = true;
 
                 $config = $manager->generateNginxConfiguration($site);
                 expect($config)->toBeString();
-                expect($config)->toContain("listen 0.0.0.0:{$port}");
+                expect($config)->toContain('listen 0.0.0.0:' . $port);
             }
 
             // 4. Obter IP para instruções ao usuário
@@ -201,8 +201,8 @@ describe('API Integration Tests', function (): void {
             $domain = $name . '.test';
             $config = $manager->generateProxyNginxConfiguration($domain, $port);
 
-            expect($config)->toContain("server_name {$domain}");
-            expect($config)->toContain("proxy_pass http://127.0.0.1:{$port}");
+            expect($config)->toContain('server_name ' . $domain);
+            expect($config)->toContain('proxy_pass http://127.0.0.1:' . $port);
         });
     });
 

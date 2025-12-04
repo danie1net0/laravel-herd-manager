@@ -63,21 +63,21 @@ try {
             $response = new Response(
                 404,
                 ['Content-Type' => $isApi ? 'application/json' : 'text/html'],
-                $isApi ? json_encode(['error' => 'Route not found']) : '<h1>404 Not Found</h1>'
+                $isApi ? (json_encode(['error' => 'Route not found']) ?: '{}') : '<h1>404 Not Found</h1>'
             );
             break;
         case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
             $response = new Response(
                 405,
                 ['Content-Type' => $isApi ? 'application/json' : 'text/html'],
-                $isApi ? json_encode(['error' => 'Method not allowed']) : '<h1>405 Method Not Allowed</h1>'
+                $isApi ? (json_encode(['error' => 'Method not allowed']) ?: '{}') : '<h1>405 Method Not Allowed</h1>'
             );
             break;
         case FastRoute\Dispatcher::FOUND:
             $handler = $routeInfo[1];
             $vars = $routeInfo[2];
 
-            [$controllerName, $method] = explode('@', $handler);
+            [$controllerName, $method] = explode('@', (string) $handler);
 
             $controller = match ($controllerName) {
                 'SiteController' => $siteController,
@@ -85,30 +85,26 @@ try {
                 'WebController' => $webController,
                 default => throw new RuntimeException('Controller not found'),
             };
+            $response = empty($vars) ? $controller->$method($request) : $controller->$method($request, $vars);
 
-            if (empty($vars)) {
-                $response = $controller->$method($request);
-            } else {
-                $response = $controller->$method($request, $vars);
-            }
             break;
         default:
             $response = new Response(
                 500,
                 ['Content-Type' => $isApi ? 'application/json' : 'text/html'],
-                $isApi ? json_encode(['error' => 'Unknown routing error']) : '<h1>500 Internal Server Error</h1>'
+                $isApi ? (json_encode(['error' => 'Unknown routing error']) ?: '{}') : '<h1>500 Internal Server Error</h1>'
             );
     }
-} catch (Throwable $e) {
+} catch (Throwable $throwable) {
     $response = new Response(
         500,
         ['Content-Type' => $isApi ? 'application/json' : 'text/html'],
-        $isApi ? json_encode([
+        $isApi ? (json_encode([
             'error' => 'Internal server error',
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-        ]) : '<h1>500 Internal Server Error</h1><p>' . htmlspecialchars($e->getMessage()) . '</p>'
+            'message' => $throwable->getMessage(),
+            'file' => $throwable->getFile(),
+            'line' => $throwable->getLine(),
+        ]) ?: '{}') : '<h1>500 Internal Server Error</h1><p>' . htmlspecialchars($throwable->getMessage()) . '</p>'
     );
 }
 

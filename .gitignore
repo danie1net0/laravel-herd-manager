@@ -36,3 +36,4 @@ coverage/
 
 # PHPStan
 .phpstan/
+phpstan-baseline.neon

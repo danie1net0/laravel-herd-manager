@@ -29,10 +29,10 @@ readonly class ProxyController
     public function create(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $requestData = json_decode((string) $request->getBody(), associative: true);
+            $requestData = $this->parseJsonBody($request);
 
-            $proxyName = $requestData['name'] ?? '';
-            $portNumber = (int) ($requestData['port'] ?? 0);
+            $proxyName = $this->getStringFromArray($requestData, 'name', '');
+            $portNumber = $this->getIntFromArray($requestData, 'port', 0);
 
             $proxyData = $this->proxyService->createProxy($proxyName, $portNumber);
 
@@ -50,7 +50,7 @@ readonly class ProxyController
                 'success' => false,
                 'error' => $exception->getMessage(),
             ], 409);
-        } catch (Exception $exception) {
+        } catch (Exception) {
             return $this->json([
                 'success' => false,
                 'error' => 'Internal server error',
@@ -81,7 +81,7 @@ readonly class ProxyController
                 'success' => false,
                 'error' => $exception->getMessage(),
             ], 404);
-        } catch (Exception $exception) {
+        } catch (Exception) {
             return $this->json([
                 'success' => false,
                 'error' => 'Internal server error',
@@ -97,7 +97,42 @@ readonly class ProxyController
         return new Response(
             $statusCode,
             ['Content-Type' => 'application/json'],
-            json_encode($responseData)
+            json_encode($responseData) ?: '{}'
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseJsonBody(ServerRequestInterface $request): array
+    {
+        $body = (string) $request->getBody();
+        $decoded = json_decode($body, associative: true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function getStringFromArray(array $data, string $key, string $default = ''): string
+    {
+        $value = $data[$key] ?? $default;
+
+        return is_string($value) ? $value : $default;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function getIntFromArray(array $data, string $key, int $default = 0): int
+    {
+        $value = $data[$key] ?? $default;
+
+        return is_int($value) ? $value : (int) $value;
     }
 }

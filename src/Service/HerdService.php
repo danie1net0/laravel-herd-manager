@@ -172,7 +172,11 @@ final class HerdService
 
             $newContentLines[] = $contentLine;
 
-            if ($herdConfigurationFound || ! str_contains($contentLine, 'include herd.conf;')) {
+            if ($herdConfigurationFound) {
+                continue;
+            }
+
+            if (! str_contains($contentLine, 'include herd.conf;')) {
                 continue;
             }
 

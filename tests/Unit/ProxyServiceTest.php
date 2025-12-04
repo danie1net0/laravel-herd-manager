@@ -74,8 +74,8 @@ describe('ProxyService', function (): void {
             $nginxConfiguration = $this->manager->generateProxyNginxConfiguration($domainName, $portNumber);
 
             expect($nginxConfiguration)->toContain('listen 127.0.0.1:80');
-            expect($nginxConfiguration)->toContain("server_name {$domainName} www.{$domainName} *.{$domainName}");
-            expect($nginxConfiguration)->toContain("proxy_pass http://127.0.0.1:{$portNumber}");
+            expect($nginxConfiguration)->toContain(sprintf('server_name %s www.%s *.%s', $domainName, $domainName, $domainName));
+            expect($nginxConfiguration)->toContain('proxy_pass http://127.0.0.1:' . $portNumber);
         });
 
         it('includes WebSocket support headers', function (): void {
@@ -105,7 +105,7 @@ describe('ProxyService', function (): void {
             $portNumber = 8080;
             $nginxConfiguration = $this->manager->generateProxyNginxConfiguration('test.test', $portNumber);
 
-            expect($nginxConfiguration)->toContain("proxy_pass http://127.0.0.1:{$portNumber}");
+            expect($nginxConfiguration)->toContain('proxy_pass http://127.0.0.1:' . $portNumber);
         });
     });
 

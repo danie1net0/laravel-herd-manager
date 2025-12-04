@@ -36,16 +36,17 @@ readonly class SiteController
     public function apply(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $requestData = json_decode((string) $request->getBody(), associative: true);
+            $requestData = $this->parseJsonBody($request);
+            $sitesData = $this->getArrayFromArray($requestData, 'sites');
 
-            if (! isset($requestData['sites']) || ! is_array($requestData['sites'])) {
+            if ($sitesData === []) {
                 return $this->json([
                     'success' => false,
                     'error' => 'Invalid sites data',
                 ], 400);
             }
 
-            $applySuccess = $this->herdService->applyChanges($requestData['sites']);
+            $applySuccess = $this->herdService->applyChanges($sitesData);
 
             if (! $applySuccess) {
                 return $this->json([
@@ -88,10 +89,10 @@ readonly class SiteController
 
     public function status(ServerRequestInterface $request): ResponseInterface
     {
-        $requestData = json_decode((string) $request->getBody(), associative: true);
+        $requestData = $this->parseJsonBody($request);
 
-        $activePortsList = $requestData['activePorts'] ?? [];
-        $inactivePortsList = $requestData['inactivePorts'] ?? [];
+        $activePortsList = $this->getArrayFromArray($requestData, 'activePorts');
+        $inactivePortsList = $this->getArrayFromArray($requestData, 'inactivePorts');
 
         $activePortsStatus = $this->checkActivePortsStatus($activePortsList);
         $inactivePortsStatus = $this->checkInactivePortsStatus($inactivePortsList);
@@ -111,7 +112,7 @@ readonly class SiteController
     public function debug(ServerRequestInterface $request): ResponseInterface
     {
         $herdExecutablePath = $_SERVER['HOME'] . '/Library/Application Support/Herd/bin/herd';
-        exec("PATH=\"{$_SERVER['HOME']}/Library/Application Support/Herd/bin:\$PATH\" " . escapeshellarg($herdExecutablePath) . " parked 2>&1", $commandOutput, $exitCode);
+        exec(sprintf('PATH="%s/Library/Application Support/Herd/bin:$PATH" ', $_SERVER['HOME']) . escapeshellarg($herdExecutablePath) . " parked 2>&1", $commandOutput, $exitCode);
 
         return $this->json([
             'output' => $commandOutput,
@@ -122,8 +123,8 @@ readonly class SiteController
     public function testApply(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $requestData = json_decode((string) $request->getBody(), associative: true);
-            $sitesList = $requestData['sites'] ?? [];
+            $requestData = $this->parseJsonBody($request);
+            $sitesList = $this->getArrayFromArray($requestData, 'sites');
 
             $nginxConfigurationDirectory = $_SERVER['HOME'] . '/Library/Application Support/Herd/config/nginx/';
             $nginxMainConfigurationPath = $nginxConfigurationDirectory . 'nginx.conf';
@@ -204,7 +205,33 @@ readonly class SiteController
         return new Response(
             $statusCode,
             ['Content-Type' => 'application/json'],
-            json_encode($responseData)
+            json_encode($responseData) ?: '{}'
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseJsonBody(ServerRequestInterface $request): array
+    {
+        $body = (string) $request->getBody();
+        $decoded = json_decode($body, associative: true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<mixed>
+     */
+    private function getArrayFromArray(array $data, string $key): array
+    {
+        $value = $data[$key] ?? [];
+
+        return is_array($value) ? $value : [];
     }
 }
