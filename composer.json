@@ -1,0 +1,38 @@
+{
+    "name": "daniel/herd-manager",
+    "description": "Herd Manager - Expose local sites to network",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Daniel"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "nikic/fast-route": "^1.3",
+        "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1"
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "HerdManager\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "test:coverage": "pest --coverage"
+    }
+}

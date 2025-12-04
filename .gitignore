@@ -1,0 +1,32 @@
+# Composer
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pest
+.pest/
+.phpunit.cache/
+.phpunit.result.cache
+
+# Coverage
+coverage/
+.phpunit.result.cache
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Herd Manager specific
+.herd-manager-proxies.json
