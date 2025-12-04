@@ -2,7 +2,6 @@ parameters:
     level: 9
     paths:
         - src
-        - tests
         - routes
         - public
     excludePaths:
