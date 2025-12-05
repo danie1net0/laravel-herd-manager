@@ -30,8 +30,8 @@ cd ~/Herd
 
 2. Clone and install:
 ```bash
-git clone https://github.com/danie1net0/laravel-herd-manager.git
-cd laravel-herd-manager
+git clone https://github.com/danie1net0/laravel-herd-manager.git herd-manager
+cd herd-manager
 composer install
 ```
 
