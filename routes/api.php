@@ -16,4 +16,6 @@ return function (RouteCollector $r): void {
     $r->addRoute('GET', '/api/proxies', 'ProxyController@list');
     $r->addRoute('POST', '/api/proxies', 'ProxyController@create');
     $r->addRoute('DELETE', '/api/proxies/{name}', 'ProxyController@delete');
+
+    $r->addRoute('GET', '/api/updates/check', 'UpdateController@check');
 };

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use HerdManager\Service\{HerdService, PortCheckService, ProxyService};
-use HerdManager\Controller\{ProxyController, SiteController, WebController};
+use HerdManager\Service\{HerdService, PortCheckService, ProxyService, UpdateService};
+use HerdManager\Controller\{ProxyController, SiteController, UpdateController, WebController};
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7Server\ServerRequestCreator;
@@ -51,9 +51,11 @@ if ($isApi) {
 $herdService = new HerdService();
 $proxyService = new ProxyService();
 $portCheckService = new PortCheckService();
+$updateService = new UpdateService();
 
 $siteController = new SiteController($herdService, $portCheckService);
 $proxyController = new ProxyController($proxyService);
+$updateController = new UpdateController($updateService);
 $webController = new WebController();
 
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
@@ -83,6 +85,7 @@ try {
             $controller = match ($controllerName) {
                 'SiteController' => $siteController,
                 'ProxyController' => $proxyController,
+                'UpdateController' => $updateController,
                 'WebController' => $webController,
                 default => throw new RuntimeException('Controller not found'),
             };

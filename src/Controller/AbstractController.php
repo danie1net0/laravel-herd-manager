@@ -33,7 +33,7 @@ abstract readonly class AbstractController
             return [];
         }
 
-        /** @var array<string, mixed> */
+        /** @var array<string, mixed> $decoded */
         return $decoded;
     }
 

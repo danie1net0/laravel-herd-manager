@@ -12,6 +12,7 @@ Web-based management tool for exposing Laravel Herd sites to your local network.
 - Intuitive web interface
 - RESTful API
 - Port availability checking
+- Automatic update notifications (checks for new commits in the remote repository)
 
 ## Requirements
 
@@ -81,6 +82,11 @@ curl -X POST http://herd-manager.test/api/proxies \
 **Delete proxy:**
 ```bash
 curl -X DELETE http://herd-manager.test/api/proxies/my-app
+```
+
+**Check for updates:**
+```bash
+curl http://herd-manager.test/api/updates/check
 ```
 
 ## Testing

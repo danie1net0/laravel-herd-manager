@@ -164,7 +164,7 @@ final class ProxyService
             return [];
         }
 
-        /** @var array<string, array{name: string, domain: string, port: int, created_at: string}> */
+        /** @var array<string, array{name: string, domain: string, port: int, created_at: string}> $decoded */
         return $decoded;
     }
 
